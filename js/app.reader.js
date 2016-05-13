@@ -38,6 +38,7 @@
 	var Dom = {
 		top_nav: $('#top_nav'),
 		bottom_nav: $('.bottom_nav'),
+		bottom_tool_bar: $('#bottom_tool_bar'),
 		fiction_container: $('#fiction_container'),
 		font_container: $('#font_container'),
 		font_button: $('#font_button'),
@@ -129,6 +130,15 @@
 
 		var Chapter_id;
 		var ChapterTotal;
+
+		if (Util.StorageGetter('last_chapter')) {
+			Chapter_id = Util.StorageGetter('last_chapter');
+		}
+
+		if (!Chapter_id) {
+			Chapter_id = 1;
+		}
+
 		var init = function(UIcallback){
 			getFictionInfo(function(){
 				getCurChapterContent(Chapter_id, function(data){
@@ -140,50 +150,92 @@
 		};
 		// 获取章节信息
 		var getFictionInfo = function(callback) {
-			$.get('data/chapter.json', function(data){
-				// 获取章节信息后做什么
-				Chapter_id = data.chapters[1].chapter_id;
-				ChapterTotal = data.chapters.length;
-				if (callback) {
-					callback();
-				} // 等同于callback && callback();
-			}, 'json');
+			// $.get('data/chapter.json', function(data){
+			// 	// 获取章节信息后做什么
+			// 	Chapter_id = data.chapters[1].chapter_id;
+			// 	ChapterTotal = data.chapters.length;
+			// 	if (callback) {
+			// 		callback();
+			// 	} // 等同于callback && callback();
+			// }, 'json');
+			$.ajax({
+			  type: 'GET',
+			  url:  'data/chapter.json',
+			  dataType: 'json',
+			  success: function(data){
+					// 获取章节信息后做什么
+					Chapter_id = data.chapters[0].chapter_id;
+					ChapterTotal = data.chapters.length;
+					if (callback) {
+						callback();
+					} // 等同于callback && callback();
+			  }
+			});
 		};
 
 		// 获取当前章节内容
 		var getCurChapterContent = function(chapter_id, callback) {
-			$.get('data/data' + Chapter_id + '.json', function(data){
-				// 判断状态结果
-				if ( data.result === 0 ) { // 项目约定 data.result === 0 表示成功
-					var data_url = data.jsonp;
-					Util.GetJsonp(data_url, function(data){
-						//debugger;
-						if (callback) {
-							callback(data);
-						} // 等同于callback && callback(data);
-					});
-				}
-			}, 'json');
+			// $.get('data/data' + Chapter_id + '.json', function(data){
+			// 	// 判断状态结果
+			// 	if ( data.result === 0 ) { // 项目约定 data.result === 0 表示成功
+			// 		var data_url = data.jsonp;
+			// 		Util.GetJsonp(data_url, function(data){
+			// 			//debugger;
+			// 			if (callback) {
+			// 				callback(data);
+			// 			} // 等同于callback && callback(data);
+			// 		});
+			// 	}
+			// }, 'json');
+			$.ajax({
+			  type: 'GET',
+			  url:  'data/data' + Chapter_id + '.json',
+			  dataType: 'json',
+			  success: function(data){
+					// 判断状态结果
+					if ( data.result === 0 ) { // 项目约定 data.result === 0 表示成功
+						var data_url = data.jsonp;
+						Util.GetJsonp(data_url, function(data){
+							//debugger;
+							$('#init_loading').hide();
+							Dom.bottom_tool_bar.show();
+							$('body').scrollTop(0);
+							if (callback) {
+								callback(data);
+							} // 等同于callback && callback(data);
+						});
+					}
+			  },
+			  error: function(xhr){
+					if ( xhr.status == '404' ) {
+						alert('请求不存在');
+					}
+			  }
+			});
 		};
 
 		// 获取上一页
 		var prevChapter = function(UIcallback){
-			Chapter_id = parseInt(Chapter_id, 10); //十进制
+			Chapter_id = parseInt(Chapter_id);
 			if ( Chapter_id === 0 ) {
 				return;
 			}
 			Chapter_id -= 1;
 			getCurChapterContent(Chapter_id, UIcallback);
+
+			Util.StorageSetter('last_chapter', Chapter_id);
 		};
 
 		// 获取下一页
 		var nextChapter = function(UIcallback){
-			Chapter_id = parseInt(Chapter_id, 10); //十进制
+			Chapter_id = parseInt(Chapter_id);
 			if ( Chapter_id === ChapterTotal ) {
 				return;
 			}
 			Chapter_id += 1;
 			getCurChapterContent(Chapter_id, UIcallback);
+
+			Util.StorageSetter('last_chapter', Chapter_id);
 		};
 
 		return {
@@ -256,7 +308,6 @@
 		});
 		// 字号缩小
 		$('#small_font').click(function(){
-			console.log(InitFontSize);
 			if ( InitFontSize <= 14 ) {
 				return;
 			}
