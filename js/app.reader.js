@@ -115,7 +115,10 @@
 	function main() {
 		// 入口函数
 		var readerModel = ReaderModel();
-		readerModel.init();
+		var readerUI = ReaderBaseFrame(Dom.fiction_container);
+		readerModel.init(function(data){
+			readerUI(data);
+		});
 		EventHanlder();
 	}
 
@@ -123,10 +126,12 @@
 		// todo 实现数据交互
 
 		var Chapter_id;
-		var init = function(){
+		var init = function(UIcallback){
 			getFictionInfo(function(){
-				getCurChapterContent(Chapter_id, function(){
-
+				getCurChapterContent(Chapter_id, function(data){
+					if (UIcallback) {
+						UIcallback(data);
+					} // 等同于UIcallback && UIcallback(data);
 				});
 			});
 		};
@@ -142,12 +147,13 @@
 		};
 
 		// 获取当前章节内容
-		var getCurChapterContent = function(chapter_id, data, callback) {
+		var getCurChapterContent = function(chapter_id, callback) {
 			$.get('data/data' + Chapter_id + '.json', function(data){
 				// 判断状态结果
 				if ( data.result === 0 ) { // 项目约定 data.result === 0 表示成功
 					var data_url = data.jsonp;
 					Util.GetJsonp(data_url, function(data){
+						//debugger;
 						if (callback) {
 							callback(data);
 						} // 等同于callback && callback(data);
@@ -161,8 +167,22 @@
 		};
 	}
 
-	function ReaderBaseFrame() {
-		// todo 实现UI结构或交互
+	function ReaderBaseFrame(container) {
+		// todo 渲染基本的UI结构
+
+		// 解析JSON数据,并显示在相应的标签内
+		function parseJsonData(jsonData){
+			var jsonObj = JSON.parse(jsonData);
+			var html = '<h4>' + jsonObj.t + '</h4>'; // 章节标题
+			for (var i = 0, pLength = jsonObj.p.length; i < pLength; i++) { // 循环段落
+				html += '<p>' + jsonObj.p + '</p>';
+			}
+			return html;
+		}
+		return function(data){
+			container.html(parseJsonData(data));
+		};
+
 	}
 
 	function EventHanlder() {
