@@ -48,6 +48,8 @@
 	var Win = $(window);
 	var Doc = $(document);
 	var Body = $('body');
+	var readerModel;
+	var readerUI;
 
 	// 字号设置
 	var InitFontSize = Util.StorageGetter('font_size'); // 获取存储的fontsize
@@ -114,8 +116,8 @@
 
 	function main() {
 		// 入口函数
-		var readerModel = ReaderModel();
-		var readerUI = ReaderBaseFrame(Dom.fiction_container);
+		readerModel = ReaderModel();
+		readerUI = ReaderBaseFrame(Dom.fiction_container);
 		readerModel.init(function(data){
 			readerUI(data);
 		});
@@ -126,6 +128,7 @@
 		// todo 实现数据交互
 
 		var Chapter_id;
+		var ChapterTotal;
 		var init = function(UIcallback){
 			getFictionInfo(function(){
 				getCurChapterContent(Chapter_id, function(data){
@@ -140,6 +143,7 @@
 			$.get('data/chapter.json', function(data){
 				// 获取章节信息后做什么
 				Chapter_id = data.chapters[1].chapter_id;
+				ChapterTotal = data.chapters.length;
 				if (callback) {
 					callback();
 				} // 等同于callback && callback();
@@ -162,8 +166,30 @@
 			}, 'json');
 		};
 
+		// 获取上一页
+		var prevChapter = function(UIcallback){
+			Chapter_id = parseInt(Chapter_id, 10); //十进制
+			if ( Chapter_id === 0 ) {
+				return;
+			}
+			Chapter_id -= 1;
+			getCurChapterContent(Chapter_id, UIcallback);
+		};
+
+		// 获取下一页
+		var nextChapter = function(UIcallback){
+			Chapter_id = parseInt(Chapter_id, 10); //十进制
+			if ( Chapter_id === ChapterTotal ) {
+				return;
+			}
+			Chapter_id += 1;
+			getCurChapterContent(Chapter_id, UIcallback);
+		};
+
 		return {
-			init: init
+			init: init,
+			prevChapter: prevChapter,
+			nextChapter: nextChapter
 		};
 	}
 
@@ -286,6 +312,19 @@
 				$('#font_night').trigger('click');
 				NightNode = true;
 			}
+		});
+
+
+		// 上下翻页
+		$('#prev_button').click(function(){
+			readerModel.prevChapter(function(data){
+				readerUI(data);
+			});
+		});
+		$('#next_button').click(function(){
+			readerModel.nextChapter(function(data){
+				readerUI(data);
+			});
 		});
 
 
